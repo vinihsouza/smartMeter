@@ -4,11 +4,11 @@
 const char *service_name = "PROV_12345";
 const char *pop = "1234567";
 
-float cCurrent = 0.0, cVoltage = 0.0, cEnergy = 0.0, cPower = 0.0;
-bool relay = true, wifi_connected = 0;
-static uint8_t gpio_reset = 0, RELAY = 11;
+float cCurrent, cVoltage, cEnergy, cPower;
+bool relay = true, wifi_connected = ZERO;
+static uint8_t gpio_reset = ZERO, RELAY = RELAY_PIN;
 
-//------------------------------------------- Declaring Devices -----------------------------------------------------//
+//---------------------------------------------- Declaring Devices --------------------------------------------------//
 
 //The framework provides some standard device types like switch, lightbulb, fan, temperature sensor.
 static TemperatureSensor energy("Energy");
@@ -42,7 +42,7 @@ void sysProvEvent(arduino_event_t *sys_event) {
         break;
       }
     case ARDUINO_EVENT_PROV_INIT:
-      wifi_prov_mgr_disable_auto_stop(10000);
+      wifi_prov_mgr_disable_auto_stop(DELAY);
       break;
     case ARDUINO_EVENT_PROV_CRED_SUCCESS:
       Serial.println("Stopping Provisioning!!!");
@@ -56,8 +56,8 @@ void write_callback(Device *device, Param *param, const param_val_t val, void *p
   Serial.println(device_name);
   const char *param_name = param->getParamName();
 
-  if (strcmp(device_name, "Relay") == 0) {
-    if (strcmp(param_name, "Power") == 0) {
+  if (strcmp(device_name, "Relay") == ZERO) {
+    if (strcmp(param_name, "Power") == ZERO) {
       Serial.printf("Received value = %s for %s - %s\n", val.val.b ? "true" : "false", device_name, param_name);
       relay = val.val.b;
       (relay == false) ? digitalWrite(RELAY, LOW) : digitalWrite(RELAY, HIGH);
@@ -67,19 +67,21 @@ void write_callback(Device *device, Param *param, const param_val_t val, void *p
 }
 
 void setup() {
-  Serial.begin(115200);
-
   pinMode(gpio_reset, INPUT);
   pinMode(RELAY, OUTPUT);
-  digitalWrite(RELAY, LOW);
+  digitalWrite(RELAY, HIGH);
 
+  Serial.begin(115200);
   Wire.setPins(SDA, SCL);
+
   display.init();
+  display.flipScreenVertically();
   display.clear();
   if (!ads.begin()) {
     Serial.println("Failed to initialize ADS."); while (true);
   }
   ads.setDataRate(RATE_ADS1115_860SPS);
+  acs_calibrated();
 
   //------------------------------------------- Declaring Node -----------------------------------------------------//
   Node my_node;
@@ -136,14 +138,14 @@ void loop() {
     while (digitalRead(gpio_reset) == LOW) delay(50);
     int endTime = millis();
 
-    if ((endTime - startTime) > 10000) {
+    if ((endTime - startTime) > DELAY) {
       // If key pressed for more than 10secs, reset all
       Serial.printf("Reset to factory.\n");
-      wifi_connected = 0;
+      wifi_connected = ZERO;
       RMakerFactoryReset(2);
     } else if ((endTime - startTime) > 3000) {
       Serial.printf("Reset Wi-Fi.\n");
-      wifi_connected = 0;
+      wifi_connected = ZERO;
       // If key pressed for more than 3secs, but less than 10, reset Wi-Fi
       RMakerWiFiReset(2);
     }
